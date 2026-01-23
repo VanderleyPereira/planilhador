@@ -1,0 +1,38 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Build / executáveis
+build/
+dist/
+*.spec
+
+# Arquivos de configuração sensíveis
+.env
+planilhas_config.json
+
+# Credenciais do Google
+token.json
+credentials.json
+src/auth/token.json
+src/auth/credentials.json
+
+# Configurações locais (o JSON que criamos antes)
+config.json
+
+# Pastas de ambiente virtual e cache
+__pycache__/
+venv/
+.env
