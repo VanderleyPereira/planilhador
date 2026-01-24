@@ -1,4 +1,4 @@
-# 🗂️ Gerenciador de Planilhas - Grupo Líder
+# 🗂️ Gerenciador de Planilhas
 
 Sistema dinâmico para copiar dados de planilhas de origem para múltiplos destinos no Google Sheets.
 
