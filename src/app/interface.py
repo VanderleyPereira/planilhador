@@ -63,7 +63,7 @@ def criar_modal_config_origem():
         ], justification='center', pad=(0,15))]
     ]
     
-    return sg.Window("Nova Planilha", layout, modal=True, size=(500, 420), keep_on_top=True)
+    return sg.Window("Nova Planilha", layout, modal=True, keep_on_top=True, element_justification='center')
 
 def criar_modal_novo_destino():
     """Cria modal para adicionar novo destino"""
@@ -96,6 +96,9 @@ def criar_modal_novo_destino():
         [sg.Text("Nome da Aba:", font=("Roboto", 10, "bold"))],
         [sg.Input(key="-DEST_ABA-", size=(55, 1), font=("Consolas", 11), border_width=0)],
         
+        [sg.Text("Colunas Protegidas (Opcional - Ex: D, F, CU):", font=("Roboto", 10, "bold"), text_color=ACCENT_COLOR)],
+        [sg.Input(key="-DEST_PROTEGIDA-", size=(15, 1), font=("Consolas", 11), border_width=0)],
+        
         [sg.Text("")],
         [sg.Column([
             [sg.Button("ADICIONAR", key="-SAVE-DEST-", size=(15, 1), button_color=(COLOR_BOTON_START, BTN_SUCCESS), font=("Roboto", 10, "bold"), border_width=0),
@@ -103,7 +106,7 @@ def criar_modal_novo_destino():
         ], justification='center', pad=(0,15))]
     ]
     
-    return sg.Window("Novo Destino", layout, modal=True, size=(500, 420), keep_on_top=True)
+    return sg.Window("Novo Destino", layout, modal=True, keep_on_top=True, element_justification='center')
 
 def criar_janela_principal(config):
     """Cria janela principal do aplicativo"""
@@ -219,7 +222,10 @@ def atualizar_interface_principal(window, config, nome_config):
         
         # Atualiza Lista Destinos
         destinos = planilha_selecionada.get("destinos", [])
-        lista_formatada = [f"{d['nome']} | Aba: {d['aba']}" for d in destinos]
+        lista_formatada = []
+        for d in destinos:
+            prot = f" | [Coluna Protegida: {d['coluna_protegida']}]" if d.get('coluna_protegida') else ""
+            lista_formatada.append(f"{d['nome']} | Aba: {d['aba']}{prot}")
         window["-LISTA_DESTINOS-"].update(lista_formatada)
     else:
         window["-INFO_ORIGEM_ID-"].update("Selecione uma configuração.")
@@ -234,7 +240,7 @@ def run_copy_all_task(window, planilha_config):
         window.write_event_value('-LOG-', f"\n✅ Autenticando com Google Sheets...")
         creds = autenticar()
         service = build('sheets', 'v4', credentials=creds)
-        window.write_event_value('-LOG-', f"\n✅ Autenticado com sucesso!\n\n")
+        window.write_event_value('-LOG-', f"\n✅ Autenticado com sucesso!\n")
         
         # Limpa resultados anteriores
         window.write_event_value('-CLEAR_RESULTS-', '')
@@ -266,6 +272,7 @@ def run_copy_all_task(window, planilha_config):
                     origem_aba,
                     destino["id"],
                     destino["aba"],
+                    coluna_protegida=destino.get("coluna_protegida"),
                     callback_progresso=atualizar_progresso
                 )
                 
@@ -407,7 +414,8 @@ def main():
                     novo_destino = {
                         "nome": val_d["-DEST_NOME-"],
                         "id": val_d["-DEST_ID-"],
-                        "aba": val_d["-DEST_ABA-"]
+                        "aba": val_d["-DEST_ABA-"],
+                        "coluna_protegida": val_d["-DEST_PROTEGIDA-"].upper().strip() if val_d["-DEST_PROTEGIDA-"] else ""
                     }
                     
                     # Encontra config atual e adiciona
