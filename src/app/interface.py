@@ -96,7 +96,7 @@ def criar_modal_novo_destino():
         [sg.Text("Nome da Aba:", font=("Roboto", 10, "bold"))],
         [sg.Input(key="-DEST_ABA-", size=(55, 1), font=("Consolas", 11), border_width=0)],
         
-        [sg.Text("Coluna Protegida (Opcional - Ex: D, CT):", font=("Roboto", 10, "bold"), text_color=ACCENT_COLOR)],
+        [sg.Text("Colunas Protegidas (Opcional - Ex: D, F, CU):", font=("Roboto", 10, "bold"), text_color=ACCENT_COLOR)],
         [sg.Input(key="-DEST_PROTEGIDA-", size=(15, 1), font=("Consolas", 11), border_width=0)],
         
         [sg.Text("")],

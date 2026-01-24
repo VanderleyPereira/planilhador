@@ -19,6 +19,45 @@ def idx_para_col(idx):
         letras = chr(65 + rem) + letras
     return letras
 
+def parse_colunas_protegidas(input_str):
+    """Converte string 'A, C, F' para set de índices {0, 2, 5}"""
+    if not input_str:
+        return set()
+    
+    indices = set()
+    partes = input_str.split(',')
+    for p in partes:
+        p = p.strip()
+        if p:
+            try:
+                indices.add(col_para_idx(p))
+            except ValueError:
+                pass # Ignora colunas inválidas silenciosamente ou logar se necessário
+    return indices
+
+def calcular_intervalos_livres(indices_protegidos):
+    """
+    Retorna lista de tuplas (inicio, fim) representando colunas NÃO protegidas.
+    'fim' pode ser None, indicando 'até o infinito'.
+    Ex: protegidos={1} (B) -> [(0,0), (2, None)] -> A:A, C:Z
+    """
+    if not indices_protegidos:
+        return [(0, None)]
+    
+    sorted_idx = sorted(list(indices_protegidos))
+    intervalos = []
+    
+    current = 0
+    for idx_proibido in sorted_idx:
+        if idx_proibido > current:
+            intervalos.append((current, idx_proibido - 1))
+        current = idx_proibido + 1
+    
+    # Adiciona o intervalo final
+    intervalos.append((current, None))
+    
+    return intervalos
+
 def copiar_para_aba_existente(
     service,
     planilha_origem_id,
@@ -39,94 +78,90 @@ def copiar_para_aba_existente(
     if not valores:
         raise Exception("A aba de origem está vazia")
 
-    # 2️⃣ Limpeza da aba destino
-    if not coluna_protegida:
-        # Se não houver proteção, limpa tudo
-        service.spreadsheets().values().clear(
-            spreadsheetId=planilha_destino_id,
-            range=aba_destino
-        ).execute()
-    else:
-        # Se houver proteção (ex: D), limpa em duas partes
-        idx_prot = col_para_idx(coluna_protegida)
-        
-        # Parte 1: Antes da protegida (Ex: de A até C se a protegida for D)
-        if idx_prot > 0:
-            letra_fim_p1 = idx_para_col(idx_prot - 1)
-            range_p1 = f"{aba_destino}!A:{letra_fim_p1}"
-            service.spreadsheets().values().clear(spreadsheetId=planilha_destino_id, range=range_p1).execute()
-        
-        # Parte 2: Depois da protegida (Ex: de E em diante se a protegida for D)
-        try:
-            letra_ini_p2 = idx_para_col(idx_prot + 1)
-            range_p2 = f"{aba_destino}!{letra_ini_p2}:ZZZ"
-            service.spreadsheets().values().clear(spreadsheetId=planilha_destino_id, range=range_p2).execute()
-        except Exception:
-            # Se a coluna protegida for a última ou estiver além do grid, ignoramos a limpeza do resto
-            pass
+    # Parse das colunas protegidas
+    indices_protegidos = parse_colunas_protegidas(coluna_protegida)
+    intervalos_livres = calcular_intervalos_livres(indices_protegidos)
 
-    # 3️⃣ Colar dados na aba destino (em blocos)
+    # 2️⃣ Limpeza da aba destino (Batch Clear)
+    ranges_to_clear = []
+    
+    for inicio, fim in intervalos_livres:
+        col_start = idx_para_col(inicio)
+        if fim is None:
+            # Caso especial: tentar limpar até ZZZ, ignorando erros de grid se não existir
+            col_end = "ZZZ" 
+        else:
+            col_end = idx_para_col(fim)
+            
+        ranges_to_clear.append(f"{aba_destino}!{col_start}:{col_end}")
+
+    # Executa limpeza apenas se houver ranges e tenta ser resiliente
+    if ranges_to_clear:
+        try:
+            service.spreadsheets().values().batchClear(
+                spreadsheetId=planilha_destino_id,
+                body={"ranges": ranges_to_clear}
+            ).execute()
+        except Exception:
+             # Fallback: Se der erro (ex: grid limit), tenta limpar um por um ignorando erros de "out of bounds"
+             for rng in ranges_to_clear:
+                 try:
+                     service.spreadsheets().values().clear(
+                         spreadsheetId=planilha_destino_id, 
+                         range=rng
+                     ).execute()
+                 except:
+                     pass
+
+    # 3️⃣ Colar dados na aba destino (Batch Update por blocos)
     total = len(valores)
-    tamanho_bloco = 5000  # Blocos de 2000 linhas para envio fracionado
+    tamanho_bloco = 5000 
 
     if callback_progresso:
         callback_progresso(0)
 
     for i in range(0, total, tamanho_bloco):
         bloco = valores[i:i + tamanho_bloco]
-        
-        if not coluna_protegida:
-            # Lógica Normal: Cola bloco inteiro começando em A
-            range_bloco = f"{aba_destino}!A{i+1}"
+        batch_data = []
+
+        # Para cada sub-intervalo livre, preparamos os dados
+        for inicio, fim in intervalos_livres:
+            sub_bloco = []
+            
+            # Fatiar os dados da memória
+            col_start_letter = idx_para_col(inicio)
+            range_dest = f"{aba_destino}!{col_start_letter}{i+1}"
+            
+            has_data = False
+            for linha in bloco:
+                # O python slice [x:None] vai até o final
+                fatia = linha[inicio : (fim + 1 if fim is not None else None)]
+                
+                # Se fatia for vazia e estivermos no meio da tabela, precisamos preservar o alinhamento?
+                # Sim, mas o Sheets API ignora arrays vazios no final.
+                # Se a fatia resultar em nada (ex: linha curta), adicionamos lista vazia
+                sub_bloco.append(fatia)
+                if fatia: has_data = True
+            
+            # Só adiciona ao batch se tiver algum dado real nesse intervalo para alguma linha
+            if has_data:
+                batch_data.append({
+                    "range": range_dest,
+                    "values": sub_bloco
+                })
+
+        # Executa o Batch Update do bloco
+        if batch_data:
             try:
-                service.spreadsheets().values().update(
+                service.spreadsheets().values().batchUpdate(
                     spreadsheetId=planilha_destino_id,
-                    range=range_bloco,
-                    valueInputOption="RAW",
-                    body={"values": bloco}
+                    body={
+                        "valueInputOption": "RAW",
+                        "data": batch_data
+                    }
                 ).execute()
             except Exception as e:
-                raise Exception(f"Erro ao enviar bloco (normal) {i+1}: {str(e)}")
-        else:
-            # Lógica com Coluna Protegida
-            idx_prot = col_para_idx(coluna_protegida)
-            
-            # Fatiar bloco em duas partes (esquerda e direita da coluna protegida)
-            bloco_esq = []
-            bloco_dir = []
-            
-            for linha in bloco:
-                esq = linha[:idx_prot]
-                dir = linha[idx_prot + 1:] if len(linha) > idx_prot else []
-                bloco_esq.append(esq)
-                bloco_dir.append(dir)
-            
-            # Envia Parte Esquerda (se existir e não for apenas listas vazias)
-            if bloco_esq and any(linha for linha in bloco_esq if linha):
-                range_esq = f"{aba_destino}!A{i+1}"
-                try:
-                    service.spreadsheets().values().update(
-                        spreadsheetId=planilha_destino_id,
-                        range=range_esq,
-                        valueInputOption="RAW",
-                        body={"values": bloco_esq}
-                    ).execute()
-                except Exception as e:
-                    raise Exception(f"Erro ao enviar parte esquerda no bloco {i+1}: {str(e)}")
-            
-            # Envia Parte Direita (se existir e não for apenas listas vazias)
-            if bloco_dir and any(linha for linha in bloco_dir if linha):
-                letra_ini_p2 = idx_para_col(idx_prot + 1)
-                range_dir = f"{aba_destino}!{letra_ini_p2}{i+1}"
-                try:
-                    service.spreadsheets().values().update(
-                        spreadsheetId=planilha_destino_id,
-                        range=range_dir,
-                        valueInputOption="RAW",
-                        body={"values": bloco_dir}
-                    ).execute()
-                except Exception as e:
-                    raise Exception(f"Erro ao enviar parte direita (após {coluna_protegida}) no bloco {i+1}: {str(e)}")
+                raise Exception(f"Erro ao enviar lote de dados (linhas {i+1} a {i+len(bloco)}): {str(e)}")
 
         # Calcula progresso
         progresso = ((i + len(bloco)) / total) * 100
