@@ -41,7 +41,7 @@ def criar_modal_config_origem():
     sg.set_options(background_color=BG_COLOR, text_element_background_color=BG_COLOR, element_background_color=BG_COLOR, input_elements_background_color=INPUT_BG, input_text_color=TEXT_COLOR, text_color=TEXT_COLOR)
     
     layout = [
-        [sg.Text("⚙️ Nome da Planilha de Origem", font=("Roboto", 16, "bold"), pad=((0,0), (15, 5)), text_color=ACCENT_COLOR)],
+        [sg.Text("⚙️ Planilha de Origem", font=("Roboto", 16, "bold"), pad=((0,0), (15, 5)), text_color=ACCENT_COLOR)],
         [sg.Text("Defina a planilha de onde os dados serão copiados", font=("Roboto", 10), text_color='#B0B0B0')],
         [sg.HorizontalSeparator(color='#505050')],
         
@@ -234,7 +234,7 @@ def run_copy_all_task(window, planilha_config):
         window.write_event_value('-LOG-', f"\n✅ Autenticando com Google Sheets...")
         creds = autenticar()
         service = build('sheets', 'v4', credentials=creds)
-        window.write_event_value('-LOG-', f"\n✅ Autenticado com sucesso!\n")
+        window.write_event_value('-LOG-', f"\n✅ Autenticado com sucesso!\n\n")
         
         # Limpa resultados anteriores
         window.write_event_value('-CLEAR_RESULTS-', '')
@@ -289,7 +289,7 @@ def run_copy_all_task(window, planilha_config):
             window.write_event_value('-LOG-', f"\n✅ Finalizado com {len(erros)} erro(s).")
             status_final = 'error'
         else:
-            window.write_event_value('-LOG-', f"\n✅ Sucesso total!")
+            window.write_event_value('-LOG-', f"\n\n🎉🎉🎉🎉 SUCESSO TOTAL! 🎉🎉🎉🎉")
             
         window.write_event_value('-DONE-', {'status': status_final, 'erros': erros, 'config': planilha_config})
             
