@@ -370,7 +370,7 @@ def main():
                 sg.popup_error("Selecione uma configuração para remover.")
                 continue
 
-            if sg.popup_yes_no(f"Tem certeza que deseja remover a configuração '{nome_config}'?\nIsso excluirá a origem e todos os seus destinos associados.") == "Yes":
+            if sg.popup_yes_no(f"Tem certeza que deseja remover a planilha '{nome_config}'?\nIsso excluirá a origem e todos os seus destinos associados.") == "Yes":
                 # Filtra removendo a configuração selecionada
                 nova_lista_planilhas = [p for p in config["planilhas"] if p["nome"] != nome_config]
                 config["planilhas"] = nova_lista_planilhas
@@ -398,7 +398,7 @@ def main():
         if event == "-ADD_DESTINO-":
             nome_config = values["-SELECT_CONFIG-"]
             if not nome_config or nome_config == "Nenhuma configuração":
-                sg.popup_error("Selecione ou crie uma configuração de origem primeiro.")
+                sg.popup_error("Selecione ou crie uma planilha de origem primeiro.")
                 continue
                 
             modal = criar_modal_novo_destino()
