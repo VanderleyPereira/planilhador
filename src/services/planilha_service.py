@@ -70,7 +70,9 @@ def copiar_para_aba_existente(
     # 1️⃣ Ler dados da origem
     result = service.spreadsheets().values().get(
         spreadsheetId=planilha_origem_id,
-        range=aba_origem
+        range=aba_origem,
+        valueRenderOption='UNFORMATTED_VALUE',  # Lê valores puros (números, datas)
+        dateTimeRenderOption='SERIAL_NUMBER'     # Datas como números seriais
     ).execute()
 
     valores = result.get("values", [])
@@ -156,7 +158,7 @@ def copiar_para_aba_existente(
                 service.spreadsheets().values().batchUpdate(
                     spreadsheetId=planilha_destino_id,
                     body={
-                        "valueInputOption": "RAW",
+                        "valueInputOption": "USER_ENTERED",  # Permite que o Sheets interprete os dados
                         "data": batch_data
                     }
                 ).execute()
