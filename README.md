@@ -1,4 +1,4 @@
-# 🗂️ Gerenciador de Planilhas - Grupo Líder
+# 🗂️ Gerenciador de Planilhas
 
 Sistema dinâmico para copiar dados de planilhas de origem para múltiplos destinos no Google Sheets.
 
@@ -8,7 +8,7 @@ Sistema dinâmico para copiar dados de planilhas de origem para múltiplos desti
 ✅ **JSON Configuration**: Todas as configurações ficam salvas em `planilhas_config.json`  
 ✅ **Granularidade**: Adicione destinos individualmente a qualquer momento
 ✅ **Resultados em Tabela**: Visualize o status de cada cópia de forma organizada
-✅ **Recuperação de Erros**: Botão inteligente para reprocessar apenas o que falhou
+✅ **Proteção de Colunas**: Preserve colunas específicas no destino durante a cópia
 
 ## 🛠️ Como Usar
 
@@ -30,15 +30,15 @@ python main.py
 1. Selecione a configuração criada no menu.
 2. Na área "Planilhas de Destino", clique em **"➕ Adicionar Planilha Destino"**.
 3. Preencha o Nome, ID e Aba da planilha para onde os dados serão copiados.
-4. Repita para adicionar quantos destinos precisar.
-5. Use o botão **"🗑️ Remover Destino"** se precisar excluir algum da lista.
+4. **Opcional**: Indique as **colunas protegidas** (ex: `D, F, CU`) para que elas não sejam sobrescritas.
+5. Repita para adicionar quantos destinos precisar.
+6. Use o botão **"🗑️ Remover Destino"** se precisar excluir algum da lista.
 
 ### 4. Executar a Cópia
 
 1. Verifique se a configuração e os destinos estão corretos.
 2. Clique no botão verde **"▶️ INICIAR CÓPIA"**.
 3. Acompanhe o progresso na barra verde e na tabela de resultados.
-4. Se houver falhas, verifique o log e use o botão amarelo **"🔄 REPROCESSAR ERROS"**.
 
 ## 📁 Arquivos
 
