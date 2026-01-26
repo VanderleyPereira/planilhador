@@ -71,8 +71,8 @@ def copiar_para_aba_existente(
     result = service.spreadsheets().values().get(
         spreadsheetId=planilha_origem_id,
         range=aba_origem,
-        valueRenderOption='UNFORMATTED_VALUE',  # Lê valores puros (números, datas)
-        dateTimeRenderOption='SERIAL_NUMBER'     # Datas como números seriais
+        valueRenderOption='UNFORMATTED_VALUE',
+        dateTimeRenderOption='SERIAL_NUMBER'
     ).execute()
 
     valores = result.get("values", [])
@@ -80,24 +80,71 @@ def copiar_para_aba_existente(
     if not valores:
         raise Exception("A aba de origem está vazia")
 
+    # 2️⃣ Verificar e ajustar tamanho da aba destino (Auto-Resize)
+    # Obtém metadados da planilha de destino para saber o SheetId e dimensões atuais
+    destino_metadata = service.spreadsheets().get(spreadsheetId=planilha_destino_id).execute()
+    aba_destino_info = next((s for s in destino_metadata['sheets'] if s['properties']['title'] == aba_destino), None)
+    
+    if not aba_destino_info:
+        raise Exception(f"A aba '{aba_destino}' não foi encontrada na planilha de destino.")
+
+    sheet_id = aba_destino_info['properties']['sheetId']
+    grid_properties = aba_destino_info['properties'].get('gridProperties', {})
+    linhas_atuais = grid_properties.get('rowCount', 0)
+    colunas_atuais = grid_properties.get('columnCount', 0)
+
+    linhas_necessarias = len(valores)
+    # Descobre a maior largura de linha nos dados de origem
+    colunas_necessarias = max(len(linha) for linha in valores) if valores else 0
+
+    requests = []
+    
+    # Se precisar de mais linhas
+    if linhas_necessarias > linhas_atuais:
+        requests.append({
+            "updateSheetProperties": {
+                "properties": {
+                    "sheetId": sheet_id,
+                    "gridProperties": {"rowCount": linhas_necessarias}
+                },
+                "fields": "gridProperties.rowCount"
+            }
+        })
+    
+    # Se precisar de mais colunas
+    if colunas_necessarias > colunas_atuais:
+        requests.append({
+            "updateSheetProperties": {
+                "properties": {
+                    "sheetId": sheet_id,
+                    "gridProperties": {"columnCount": colunas_necessarias}
+                },
+                "fields": "gridProperties.columnCount"
+            }
+        })
+
+    if requests:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=planilha_destino_id,
+            body={"requests": requests}
+        ).execute()
+
+    # 3️⃣ Limpeza da aba destino (Batch Clear)
     # Parse das colunas protegidas
     indices_protegidos = parse_colunas_protegidas(coluna_protegida)
     intervalos_livres = calcular_intervalos_livres(indices_protegidos)
-
-    # 2️⃣ Limpeza da aba destino (Batch Clear)
-    ranges_to_clear = []
     
+    ranges_to_clear = []
     for inicio, fim in intervalos_livres:
         col_start = idx_para_col(inicio)
         if fim is None:
-            # Caso especial: tentar limpar até ZZZ, ignorando erros de grid se não existir
-            col_end = "ZZZ" 
+            # Agora usamos o número real de colunas para evitar o ZZZ arbitrário
+            col_end = idx_para_col(max(colunas_necessarias, colunas_atuais) - 1)
         else:
             col_end = idx_para_col(fim)
             
         ranges_to_clear.append(f"{aba_destino}!{col_start}:{col_end}")
 
-    # Executa limpeza apenas se houver ranges e tenta ser resiliente
     if ranges_to_clear:
         try:
             service.spreadsheets().values().batchClear(
@@ -105,7 +152,6 @@ def copiar_para_aba_existente(
                 body={"ranges": ranges_to_clear}
             ).execute()
         except Exception:
-             # Fallback: Se der erro (ex: grid limit), tenta limpar um por um ignorando erros de "out of bounds"
              for rng in ranges_to_clear:
                  try:
                      service.spreadsheets().values().clear(
@@ -115,7 +161,7 @@ def copiar_para_aba_existente(
                  except:
                      pass
 
-    # 3️⃣ Colar dados na aba destino (Batch Update por blocos)
+    # 4️⃣ Colar dados na aba destino (Batch Update por blocos)
     total = len(valores)
     tamanho_bloco = 5000 
 
@@ -126,50 +172,37 @@ def copiar_para_aba_existente(
         bloco = valores[i:i + tamanho_bloco]
         batch_data = []
 
-        # Para cada sub-intervalo livre, preparamos os dados
         for inicio, fim in intervalos_livres:
             sub_bloco = []
-            
-            # Fatiar os dados da memória
             col_start_letter = idx_para_col(inicio)
             range_dest = f"{aba_destino}!{col_start_letter}{i+1}"
             
             has_data = False
             for linha in bloco:
-                # O python slice [x:None] vai até o final
                 fatia = linha[inicio : (fim + 1 if fim is not None else None)]
-                
-                # Se fatia for vazia e estivermos no meio da tabela, precisamos preservar o alinhamento?
-                # Sim, mas o Sheets API ignora arrays vazios no final.
-                # Se a fatia resultar em nada (ex: linha curta), adicionamos lista vazia
                 sub_bloco.append(fatia)
                 if fatia: has_data = True
             
-            # Só adiciona ao batch se tiver algum dado real nesse intervalo para alguma linha
             if has_data:
                 batch_data.append({
                     "range": range_dest,
                     "values": sub_bloco
                 })
 
-        # Executa o Batch Update do bloco
         if batch_data:
             try:
                 service.spreadsheets().values().batchUpdate(
                     spreadsheetId=planilha_destino_id,
                     body={
-                        "valueInputOption": "USER_ENTERED",  # Permite que o Sheets interprete os dados
+                        "valueInputOption": "USER_ENTERED",
                         "data": batch_data
                     }
                 ).execute()
             except Exception as e:
                 raise Exception(f"Erro ao enviar lote de dados (linhas {i+1} a {i+len(bloco)}): {str(e)}")
 
-        # Calcula progresso
         progresso = ((i + len(bloco)) / total) * 100
-        
         if callback_progresso:
             callback_progresso(progresso)
         
-        # Pausa para evitar Rate Limit
         time.sleep(0.5)
