@@ -8,7 +8,7 @@ from src.auth.auth_sheets import autenticar
 from src.services.planilha_service import copiar_para_aba_existente
 from src.icon.icon import ICONE_BASE64
 
-# Configura timeout global para evitar erro de "Read operation timed out" em planilhas grandes
+# Configura timeout global para evitar erro de timed out em planilhas grandes
 socket.setdefaulttimeout(600)  # 10 minutos
 # Arquivo de configuração
 CONFIG_FILE = "planilhas_config.json"
