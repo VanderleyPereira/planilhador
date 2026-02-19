@@ -1,0 +1,38 @@
+GUIA DE USO - PLANILHADOR PRO
+=============================
+
+O Planilhador Pro é uma ferramenta para automatizar a transferência de dados entre planilhas do Google Sheets, permitindo copiar informações de uma "Origem" para vários "Destinos" de uma só vez, com segurança.
+
+1. COMO CONFIGURAR UMA PLANILHA DE ORIGEM
+----------------------------------------
+A "Origem" é a planilha de onde os dados serão extraídos.
+- Clique em "NOVA PLANILHA".
+- Nome: Dê um nome para identificar essa configuração (Ex: "Dados Vendas").
+- ID da Planilha: Copie o código longo que aparece na URL da sua planilha do Google.
+  (Ex: em https://docs.google.com/spreadsheets/d/1ABC123.../edit, o ID é "1ABC123...")
+- Nome da Aba: O nome exato da aba (ex: "Folha1" ou "Dados").
+
+2. COMO ADICIONAR DESTINOS
+-------------------------
+Os "Destinos" são as planilhas que receberão os dados da origem.
+- Selecione a Planilha de Origem no menu suspenso.
+- Clique em "ADICIONAR DESTINO".
+- Preencha o Nome, ID da Planilha e Nome da Aba do destino.
+- Colunas Protegidas (OPCIONAL): Se o seu destino tem colunas com fórmulas ou dados que NÃO podem ser apagados, digite a letra da coluna (Ex: D, F, CU). O programa irá pular essas colunas ao colar os dados.
+
+3. EXECUTANDO A CÓPIA
+--------------------
+- Selecione a configuração desejada no menu superior.
+- Clique no botão verde "INICIAR CÓPIA".
+- O programa solicitará login no Google via navegador (apenas na primeira vez).
+- Acompanhe a barra de progresso e o "LOG DO SISTEMA" para ver se tudo correu bem.
+
+4. DICAS E RESOLUÇÃO DE PROBLEMAS
+--------------------------------
+- LOGIN: Ao abrir o navegador, clique em "Avançado" e "Acessar Planilhador (não seguro)" para autorizar o acesso.
+- ERRO DE TOKEN: Se o programa der erro de login, apague o arquivo "token.json" na pasta e tente novamente.
+- PERMISSÕES: Verifique se a sua conta do Google tem acesso de "Editor" em todas as planilhas envolvidas.
+- COLUNAS PROTEGIDAS: Se você configurou colunas protegidas e os dados não estão aparecendo nelas, lembre-se que o programa preserva o que já existe nessas colunas no destino.
+
+---
+Desenvolvido para automação eficiente de planilhas.

@@ -1,0 +1,31 @@
+COMO UTILIZAR O PLANILHADOR PRO
+=============================
+
+Este guia ajudará você a configurar e utilizar o programa corretamente.
+
+
+1. EXECUTANDO O PROGRAMA
+-----------------------
+- Dê um clique duplo no arquivo "PlanilhadorPro.exe".
+- Uma janela do seu navegador de internet será aberta automaticamente.
+
+2. AUTORIZAÇÃO (LOGIN GOOGLE)
+----------------------------
+- No navegador, escolha a conta do Google que tem acesso às planilhas.
+- O Google pode exibir um aviso de "App não verificado" (isso é normal para ferramentas internas).
+- Clique em "Avançado" e depois em "Acessar Planilhador (não seguro)".
+- Clique em "Continuar" para permitir que o programa leia e edite suas planilhas.
+
+3. PRONTO!
+---------
+- Após autorizar, você pode fechar a aba do navegador.
+- O programa agora está conectado e pronto para processar os dados.
+
+DICA: Se o programa fechar sozinho ou apresentar erro, verifique se a sua internet está funcionando e se você tem permissão de edição na planilha de destino.
+
+
+DICA 2: Se o programa apresentar o erro: 
+
+"❌ ERRO CRÍTICO: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
+
+Entre na pasta e apague o arquivo "token" e aperte novamente para iniciar o programa ele vai pedir que você entre novamente com a sua conta google.
