@@ -5,9 +5,13 @@ Sistema dinâmico para copiar dados de planilhas de origem para múltiplos desti
 ## 🚀 Funcionalidades
 
 ✅ **Sistema Dinâmico**: Crie e edite configurações direto na interface  
+
 ✅ **JSON Configuration**: Todas as configurações ficam salvas em `planilhas_config.json`  
+
 ✅ **Granularidade**: Adicione destinos individualmente a qualquer momento
+
 ✅ **Resultados em Tabela**: Visualize o status de cada cópia de forma organizada
+
 ✅ **Proteção de Colunas**: Preserve colunas específicas no destino durante a cópia
 
 ## 🛠️ Como Usar
